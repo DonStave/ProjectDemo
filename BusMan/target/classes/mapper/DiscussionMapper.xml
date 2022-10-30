@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.my.mapper.DiscussionMapper">
+    <select id="query" resultType="map">
+        select d.*,s.user_name from discussion d
+        left join sys_user s on d.author = s.user_id
+        <where>
+            <if test="#{title}!=null">
+                and d.title like concat('%',#{title},'%')
+            </if>
+            <if test="#{content}!=null">
+                and d.content like concat('%',#{content},'%')
+            </if>
+        </where>
+    </select>
+</mapper>

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.my.mapper.InformationMapper">
+    <select id="query" resultType="map">
+        select * from information
+        <where>
+            <if test="#{infoName}!=null">
+                and infoName like concat('%',#{infoName},'%')
+            </if>
+        </where>
+    </select>
+</mapper>

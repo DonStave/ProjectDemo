@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+    <!-- 避免IE使用兼容模式 -->
+    <meta http-equiv="X-UA-Compatible" content="IE=edge, chrome=1">
+    <meta name="renderer" content="webkit">
+    <meta name="keywords" content='easyui,jui,jquery easyui,easyui demo,easyui中文'/>
+    <meta name="description" content='管理后台'/>
+    <title>城市公交管理调度系统</title>
+    <!--vue-->
+    <script src="../static/js/vue.js"></script>
+    <!-- 引入样式 -->
+    <link rel="stylesheet" href="../static/css/index.css">
+    <!-- 引入组件库 -->
+    <script src="../static/js/index.js"></script>
+    <!--axios-->
+    <script src="../static/js/axios.min.js"></script>
+    <!-- 浏览器标签图片 -->
+    <link rel="shortcut icon" href="../static/imgs/favicon.ico"/>
+    <link rel="stylesheet" href="../static/css/bootstrap.min.css">
+    <link rel="stylesheet" href="../static/css/font-awesome.min.css">
+    <style type="text/css">
+        html, body {
+            height: 100%
+        }
+
+        .box {
+            background: url("../static/imgs/loginBg.jpg") no-repeat center center;
+            background-size: cover;
+            margin: 0 auto;
+            position: relative;
+            width: 100%;
+            height: 100%
+        }
+
+        .login-box {
+            width: 100%;
+            max-width: 500px;
+            height: 400px;
+            position: absolute;
+            top: 50%;
+            margin-top: -200px
+        }
+
+        @media screen and (min-width: 500px) {
+            .login-box {
+                left: 50%;
+                margin-left: -250px
+            }
+        }
+
+        .form {
+            width: 100%;
+            max-width: 500px;
+            height: 275px;
+            margin: 2px auto 0px auto
+        }
+
+        .login-content {
+            border-bottom-left-radius: 8px;
+            border-bottom-right-radius: 8px;
+            height: 250px;
+            width: 100%;
+            max-width: 500px;
+            background-color: rgba(255, 250, 2550, .6);
+            float: left
+        }
+
+        .input-group {
+            margin: 30px 0px 0px 0px !important
+        }
+
+        .form-control, .input-group {
+            height: 40px
+        }
+
+        .form-actions {
+            margin-top: 30px
+        }
+
+        .form-group {
+            margin-bottom: 0px !important
+        }
+
+        .login-title {
+            border-top-left-radius: 8px;
+            border-top-right-radius: 8px;
+            padding: 20px 10px;
+            background-color: rgba(0, 0, 0, .6)
+        }
+
+        .login-title h1 {
+            margin-top: 10px !important
+        }
+
+        .login-title small {
+            color: #fff
+        }
+
+        .link p {
+            line-height: 20px;
+            margin-top: 30px
+        }
+
+        .btn-sm {
+            padding: 8px 24px !important;
+            font-size: 16px !important
+        }
+
+        .flag {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            color: #fff;
+            font-weight: bold;
+            font: 14px/normal "microsoft yahei", "Times New Roman", "宋体", Times, serif
+        }
+    </style>
+</head>
+<body>
+<div class="box">
+    <div class="login-box">
+        <div class="login-title text-center">
+            <span class="flag">  用户登陆</span>
+            <h1><small>Peach后台管理系统</small></h1>
+        </div>
+        <div class="login-content ">
+            <div class="form">
+                <form id="modifyPassword" class="form-horizontal" action="#" method="post">
+                    <div class="form-group">
+                        <div class="col-xs-10 col-xs-offset-1">
+                            <div class="input-group">
+                                <span class="input-group-addon"> </span>
+                                <input type="text" id="username" v-model="userName" name="username" class="form-control"
+                                       placeholder="用户名"
+                                       value="">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <div class="col-xs-10 col-xs-offset-1">
+                            <div class="input-group">
+                                <span class="input-group-addon"></span>
+                                <input type="password" id="password" v-model="passWord" name="password"
+                                       class="form-control"
+                                       placeholder="密码" value="">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group form-actions">
+                        <div class="col-xs-12 text-center">
+                            <button type="button" id="login" class="btn btn-sm btn-primary" @click="login">
+                                登录
+                            </button>
+                            <button type="button" id="reset" class="btn btn-sm btn-danger" @click="reset">
+                                重置
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+    <div class="modal-dialog modal-sm" role="document">
+        <div class="modal-content">
+            <div class="modal-body">
+                <span class="text-danger"><i class="fa fa-warning"></i> 用户名或密码错误，请重试！</span>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    var vue = new Vue({
+        el: ".box",
+        data: {
+            userName: '',
+            passWord: ''
+        },
+        methods: {
+            login() {
+                _this = this;
+                // console.log("登录。。。。。。。。。。。。");
+                if (this.userName == '' || this.passWord == '') {
+                    _this.$message.error("用户名和密码不能为空！");
+                    return;
+                }
+                //用户登录
+                axios.post('/user/login?userName=' + this.userName + "&passWord=" + this.passWord).then(function (response) {
+                    if (response.status == 200) {
+                        if (response.data > 0) {
+                            location.href = "/html/index.html";
+                        } else {
+                            _this.$message.error("用户名或者密码错误");
+                        }
+                    }
+                }).catch(function (error) {
+                    console.log(error);
+                    _this.$message.error("你错了。。。");
+                });
+            },
+            reset() {
+                this.userName = '';
+                this.passWord = '';
+            }
+        }
+    });
+</script>
+</body>
+</html>
+

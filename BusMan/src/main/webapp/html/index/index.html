@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8"/>
+    <title>首页</title>
+    <script src="/static/js/echarts.min.js"></script>
+    <style type="text/css">
+        #top {
+            width: auto;
+            height: 90px;
+            margin-bottom: 30px;
+        }
+
+        #left {
+            float: left;
+            width: 49%;
+            height: 450px;
+        }
+
+        #circle {
+            width: 49%;
+            height: 500px;
+            float: right;
+        }
+
+        #one, #two, #three, #four {
+            width: 23.5%;
+            height: 80px;
+            float: left;
+
+            border-radius: 8px;
+            text-align: center;
+            color: white;
+            margin-left: 15px;
+            padding-top: 20px;
+        }
+
+        #one {
+
+            background-color: #66CC33;
+
+        }
+
+        #two {
+
+            background-color: #7AC4F5;
+
+        }
+
+        #three {
+
+            background-color: #D14A61;
+
+        }
+
+        #four {
+
+            background-color: #FFC876;
+
+        }
+
+        table, th, td {
+            width: 700px;
+            border: 1px solid #E3E3E3;
+            text-align: left;
+            color: grey;
+            margin-left: 15px;
+        }
+
+        th {
+            color: white;
+            font-size: 18px;
+            background-color: #2296F3;
+        }
+    </style>
+</head>
+<body>
+<div id="all">
+    <div id="top">
+        <div id="one">
+            <div style="font-size: 26px;">
+                0.47
+            </div>
+            <div style="font-size: 14px;">当天累积客流(万)</div>
+        </div>
+        <div id="two">
+            <div style="font-size: 26px;">
+                1.91
+            </div>
+            <div style="font-size: 14px;">昨日客流(万)</div>
+        </div>
+        <div id="three">
+            <div style="font-size: 26px;">
+                13.46
+            </div>
+            <div style="font-size: 14px;">上周客流(万)</div>
+        </div>
+        <div id="four">
+            <div id="n" style="font-size: 26px;">
+                57.65
+            </div>
+            <div id="z" style="font-size: 14px;">过去三十天客流(万)</div>
+        </div>
+    </div>
+    <div id="main">
+        <div id="left">
+            <table cellspacing="0" cellpadding="8px">
+                <tr>
+                    <th>线路名称</th>
+                    <th>总上车人数</th>
+                    <th>客流占比</th>
+                    <th>排名</th>
+                </tr>
+                <tr>
+                    <td>14路</td>
+                    <td>5192</td>
+                    <td>27.01%</td>
+                    <td><span style="color: red;">1</span></td>
+                </tr>
+                <tr>
+                    <td>28路</td>
+                    <td>3540</td>
+                    <td>18.41%</td>
+                    <td><span style="color: red;">2</span></td>
+                </tr>
+                <tr>
+                    <td>35路</td>
+                    <td>2403</td>
+                    <td>12.5%</td>
+                    <td><span style="color: red;">3</span></td>
+                </tr>
+                <tr>
+                    <td>86路</td>
+                    <td>2201</td>
+                    <td>11.45%</td>
+                    <td><span style="color: red;">4</span></td>
+                </tr>
+                <tr>
+                    <td>29路</td>
+                    <td>1998</td>
+                    <td>10.39%</td>
+                    <td><span style="color: red;">5</span></td>
+                </tr>
+                <tr>
+                    <td>59快</td>
+                    <td>1470</td>
+                    <td>7.65%</td>
+                    <td><span style="color: red;">6</span></td>
+                </tr>
+                <tr>
+                    <td>59路</td>
+                    <td>867</td>
+                    <td>4.51%</td>
+                    <td><span style="color: red;">7</span></td>
+                </tr>
+                <tr>
+                    <td>86快</td>
+                    <td>747</td>
+                    <td>3.89%</td>
+                    <td><span style="color: red;">8</span></td>
+                </tr>
+                <tr>
+                    <td>9路</td>
+                    <td>430</td>
+                    <td>2.24%</td>
+                    <td><span style="color: red;">9</span></td>
+                </tr>
+                <tr>
+                    <td>56路</td>
+                    <td>378</td>
+                    <td>1.97%</td>
+                    <td><span style="color: red;">10</span></td>
+                </tr>
+                <tr>
+                    <td>总计</td>
+                    <td>19226</td>
+                    <td>100%</td>
+                    <td></td>
+                </tr>
+            </table>
+        </div>
+        <div id="circle" style="width: 600px;height: 400px;">
+
+
+        </div>
+        <div id="" style="float: right;text-align: center;margin-right: 200px;margin-top:-18px;font-size: 14px;">
+            <p>2020-05-05至2020-05-12</p>
+            <p style="color: #2296F3;">总客流(上车)</p>
+            <p style="color: red;">1.9226(万)</p>
+        </div>
+    </div>
+</div>
+</body>
+<script type="text/javascript">
+
+    option = {
+        title: {
+            text: '线路客流排行',
+            subtext: '',
+            left: 'center'
+        },
+        tooltip: {
+            trigger: 'item',
+            formatter: '{a} <br/>{b} : {c} ({d}%)'
+        },
+        legend: {
+            orient: 'vertical',
+            left: 'left',
+            data: ['14路', '28路', '35路', '86路', '29路', '59快', '59路', '86快', '9路', '56路']
+        },
+        series: [
+            {
+                name: '访问来源',
+                type: 'pie',
+                radius: '55%',
+                center: ['50%', '60%'],
+                data: [
+                    {value: 835, name: '14路'},
+                    {value: 310, name: '28路'},
+                    {value: 234, name: '35路'},
+                    {value: 135, name: '86路'},
+                    {value: 348, name: '29路'},
+                    {value: 335, name: '59快'},
+                    {value: 310, name: '59路'},
+                    {value: 234, name: '86快'},
+                    {value: 135, name: '9路'},
+                    {value: 128, name: '56路'}
+                ],
+                emphasis: {
+                    itemStyle: {
+                        shadowBlur: 10,
+                        shadowOffsetX: 0,
+                        shadowColor: 'rgba(0, 0, 0, 0.5)'
+                    }
+                }
+            }
+        ]
+    };
+
+    //将页面与echarts绑定
+    var circle = echarts.init(document.getElementById("circle"));
+    //将图形的配置项配置到echarts中，开始渲染图形
+    circle.setOption(option);
+
+</script>
+</html>

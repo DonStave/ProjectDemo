@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.my.mapper.ReportMapper">
+    <select id="queryVMSS" resultType="map">
+        select lbd.*,l.route,b.kilometers,d.driverName,b.`status` from line_bus_driver lbd
+        left join businfo b on lbd.plate = b.plate
+        left join driver d on lbd.driverId = d.driverId
+        left join line l on lbd.lineId = l.lineId
+        <where>
+            <if test="#{plate}!=null">
+                and lbd.plate like concat('%',#{plate},'%')
+            </if>
+        </where>
+    </select>
+
+    <select id="queryDLTS" resultType="map">
+        select id,driverName,workTime from driver
+        <where>
+            <if test="#{driverName}!=null">
+                and driverName like concat('%',#{driverName},'%')
+            </if>
+            order by workTime desc
+        </where>
+    </select>
+
+    <select id="queryLOS" resultType="map">
+        select lbd.*,l.route,d.driverName from line_bus_driver lbd
+        left join driver d on lbd.driverId = d.driverId
+        left join line l on lbd.lineId = l.lineId
+        <where>
+            <if test="#{lineId}!=null">
+                and lbd.lineId like concat('%',#{lineId},'%')
+            </if>
+        </where>
+    </select>
+
+    <select id="queryCK" resultType="map">
+        select b.*,d.driverName from businfo b
+        left join driver d on b.plate = d.plate;
+        <where>
+            <if test="#{plate}!=null">
+                and b.plate like concat('%',#{plate},'%')
+            </if>
+
+        </where>
+    </select>
+
+    <select id="queryDK" resultType="map">
+        select * from driver
+        <where>
+            <if test="#{driverName}!=null">
+                and driverName like concat('%',#{driverName},'%')
+            </if>
+            order by kilometers desc
+        </where>
+    </select>
+</mapper>

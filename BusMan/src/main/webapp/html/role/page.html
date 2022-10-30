@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>角色分页展示</title>
+    <!--vue-->
+    <script src="/static/js/vue.js"></script>
+    <!-- 引入样式 -->
+    <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+    <!-- 引入组件库 -->
+    <script src="https://unpkg.com/element-ui/lib/index.js"></script>
+    <!--axios-->
+    <script src="/static/js/axios.min.js"></script>
+
+</head>
+<body>
+<div id="app">
+    <el-row>
+        <el-col :span="8">
+            <el-input v-model="roleName" size="mini" placeholder="请输角色名称"></el-input>
+        </el-col>
+        <el-col :span="8">
+            <el-button type="primary" size="mini" @click="search()" icon="el-icon-search">搜索</el-button>
+            <el-button type="primary" size="mini" @click="addFormVisible=true" icon="el-icon-circle-plus">添加</el-button>
+            <el-button type="primary" size="mini" @click="flush()" icon="el-icon-search">刷新</el-button>
+
+        </el-col>
+        <el-col :span="8"></el-col>
+    </el-row>
+    <el-row>
+        <el-table
+                :data="tableData"
+                style="width: 100%">
+            <el-table-column
+                    prop="role_name"
+                    label="角色名称"
+                    width="120">
+            </el-table-column>
+            <el-table-column
+                    prop="status"
+                    :formatter="getStatusName"
+                    label="状态"
+                    width="120">
+            </el-table-column>
+            <el-table-column
+                    prop="create_by"
+                    label="添加人">
+            </el-table-column>
+            <el-table-column
+                    prop="create_time"
+                    label="添加时间">
+            </el-table-column>
+            <el-table-column label="操作">
+                <template slot-scope="scope">
+                    <el-button
+                            type="primary"
+                            size="mini"
+                            @click="toShowMenuTree(scope.$index, scope.row)">角色授权
+                    </el-button>
+                    <el-button
+                            size="mini"
+                            @click="toEdit(scope.$index, scope.row)">编辑
+                    </el-button>
+                    <el-button
+                            size="mini"
+                            type="danger"
+                            @click="handleDelete(scope.$index, scope.row)">删除
+                    </el-button>
+                </template>
+            </el-table-column>
+        </el-table>
+    </el-row>
+    <el-row>
+        <el-pagination
+                @size-change="handleSizeChange"
+                @current-change="handleCurrentChange"
+                :current-page="currentPage"
+                :page-sizes="[2,3,5,10,100, 200, 300, 400]"
+                :page-size="pageSize"
+                layout="total, sizes, prev, pager, next, jumper"
+                :total="total">
+        </el-pagination>
+    </el-row>
+    <el-row>
+        <!--添加弹出框-->
+        <el-dialog title="添加" :visible.sync="addFormVisible">
+            <el-form :model="form">
+                <el-form-item label="名称" :label-width="formLabelWidth">
+                    <el-input v-model="form.role_name" autocomplete="off"></el-input>
+                </el-form-item>
+                <el-form-item label="状态" :label-width="formLabelWidth">
+                    <el-radio v-model="form.status" label="0">启动</el-radio>
+                    <el-radio v-model="form.status" label="1">禁用</el-radio>
+                </el-form-item>
+
+            </el-form>
+            <div slot="footer" class="dialog-footer">
+                <el-button @click="addFormVisible = false">取 消</el-button>
+                <el-button type="primary" @click="add()">确 定</el-button>
+            </div>
+        </el-dialog>
+    </el-row>
+    <el-row>
+        <!--更新弹出框-->
+        <el-dialog title="更新" :visible.sync="updateFormVisible">
+            <el-form :model="form">
+                <el-form-item label="名称" :label-width="formLabelWidth">
+                    <el-input v-model="form.role_name" autocomplete="off"></el-input>
+                </el-form-item>
+                <el-form-item label="状态" :label-width="formLabelWidth">
+                    <el-radio v-model="form.status" label="0">启动</el-radio>
+                    <el-radio v-model="form.status" label="1">禁用</el-radio>
+                </el-form-item>
+            </el-form>
+            <div slot="footer" class="dialog-footer">
+                <el-button @click="updateFormVisible = false">取 消</el-button>
+                <el-button type="primary" @click="update()">确 定</el-button>
+            </div>
+        </el-dialog>
+        <!--角色授权弹出框-->
+        <el-dialog title="权限菜单" :visible.sync="menuTreeVisible">
+            <el-tree :data="data"
+                     :props="defaultProps"
+                     node-key="id"
+                     show-checkbox
+                     ref="menuTree"
+                     :default-checked-keys="nodeChecked"
+                     default-expand-all
+            ></el-tree>
+            <div slot="footer" class="dialog-footer">
+                <el-button type="primary" @click="addRoleAndMenus()">确 定</el-button>
+            </div>
+        </el-dialog>
+    </el-row>
+</div>
+<script>
+    var vue = new Vue({
+        el: "#app",
+        data: {//数据
+            data: [],
+            defaultProps: {
+                children: 'children',
+                label: 'label'
+            },
+            tableData: [],
+            currentPage: 1,
+            pageSize: 5,
+            total: 20,
+            roleName: null,
+            addFormVisible: false,//添加对话框是否显示
+            updateFormVisible: false,//更新对话框是否显示
+            form: {status: '0'},//添加或者更新form
+            formLabelWidth: "120px",
+            roleId: 0,//角色id
+            menuTreeVisible: false,
+            nodeChecked: [] //默认角色选中的权限菜单
+        },
+        created: function () {
+            this.loadData();
+        },
+        methods: {//方法
+            //加载数据的方法
+            loadData: function () {
+                _this = this;
+                //初始化数据
+                axios.get('/role/page', {
+                    params: {
+                        pageNo: this.currentPage,
+                        pageSize: this.pageSize,
+                        roleName: this.roleName
+                    }
+                })
+                    .then(function (response) {
+                        // handle success  处理成功，回调的方法
+                        //console.log(response);
+                        //赋值分页列表
+                        _this.tableData = response.data.page;
+                        //删除最后一页为空时，调到上一页
+                        //alert(_this.tableData.length);
+                        if (_this.tableData.length == 0 && _this.currentPage != 1) {
+                            _this.currentPage = _this.currentPage - 1;
+                            _this.loadData();
+                        }
+                        //赋值总条数
+                        _this.total = response.data.total;
+                    })
+                    .catch(function (error) {
+                        // handle error 处理异常
+                        //console.log(error);
+                    })
+                    .then(function () {
+                        // always executed  总是执行  相当于finally
+                    });
+            },
+            //每页数量发生变化时
+            handleSizeChange: function (v) {
+                this.pageSize = v;
+                this.loadData();
+            },
+            //当前页数放生变化是
+            handleCurrentChange: function (v) {
+                this.currentPage = v;
+                this.loadData();
+            },
+            // 搜索方法
+            search: function () {
+                this.currentPage = 1;
+                this.loadData();
+            },
+            //跳转更新
+            toEdit: function (index, row) {
+                this.form = row;
+                this.updateFormVisible = true;
+            },
+            //弹出权限菜单对话框
+            toShowMenuTree: function (index, row) {
+                //给角色ID复制
+                this.roleId = row.role_id;
+                //根据角色ID查出权限菜单ID，赋值给nodeChecked
+                _this = this;
+                //this.nodeChecked=[];  解决不了缓存问题
+                _this = this;
+                //初始化数据
+                axios.get('/menu/tree')
+                    .then(function (response) {
+                        let tmpData = response.data;
+                        //查询并给勾选项赋值
+                        axios.get('/role/listMenuByRoleId?roleId=' + _this.roleId)
+                            .then(function (response) {
+                                //console.log("返回1111值："+response.data);
+                                /* for (var i = 0; i < response.data.length; i++) {
+                                    // _this.nodeChecked.push(response.data[i]);
+                                 };*/
+                                _this.data = tmpData;
+                                _this.nodeChecked = response.data;
+                                // console.log("...222....."+ _this.nodeChecked)
+                            });
+                    });
+
+                //显示权限菜单对话框
+                this.menuTreeVisible = true;
+            },
+            //添加角色和权限菜单关联方法
+            addRoleAndMenus() {
+                //获取重新选中的节点
+                let nodes = this.$refs.menuTree.getCheckedNodes();
+                //判断至少选中一个节点
+                if (nodes.length < 1) {
+                    this.$message.error("至少选中一个节点");
+                    return;
+                }
+                let tempMenuIds = "";
+                //循环遍历
+                for (var i = 0; i < nodes.length; i++) {
+                    tempMenuIds += nodes[i].id + ",";
+                }
+                tempMenuIds = tempMenuIds.substr(0, tempMenuIds.length - 1);
+                console.log("当前角色为：" + this.roleId + "，该角色对应新的权限ID为：" + tempMenuIds);
+                _this = this;
+                //执行后台添加方法
+                axios.post('/role/addRoleAndMenu?roleId=' + this.roleId + "&menuIds=" + tempMenuIds).then(function (response) {
+                    console.log(response);
+                    if (response.status == 200) {
+                        if (response.data > 0) {
+                            //提示成功
+                            _this.$message({
+                                type: 'success',
+                                message: '授权成功!'
+                            });
+                            //关闭弹框
+                            _this.menuTreeVisible = false;
+                            //重新加载数据
+                            _this.loadData();
+                        }
+                    }
+                }).catch(function (error) {
+                    console.log(error);
+                    _this.$message.error("你错了。。。");
+                });
+            },
+            //删除
+            handleDelete: function (index, row) {
+                this.$confirm('此操作将永久删除该文件, 是否继续?', '提示', {
+                    confirmButtonText: '确定',
+                    cancelButtonText: '取消',
+                    type: 'warning'
+                }).then(() => {
+                    axios.post('/role/delete?roleId=' + row.role_id).then(function (response) {
+                        console.log(response);
+                        if (response.status == 200) {
+                            if (response.data > 0) {
+                                //提示成功
+                                _this.$message({
+                                    type: 'success',
+                                    message: '删除成功!'
+                                });
+                                //重新加载数据
+                                _this.loadData();
+                            }
+                        }
+                    }).catch(function (error) {
+                        console.log(error);
+                        _this.$message.error("你错了。。。");
+                    });
+
+                }).catch(() => {
+                    this.$message({
+                        type: 'info',
+                        message: '已取消删除'
+                    });
+                });
+            },
+            //添加
+            add: function () {
+                _this = this;
+                axios.post('/role/add', this.form).then(function (response) {
+                    console.log(response);
+                    if (response.status == 200) {
+                        //提示成功
+                        _this.$message({
+                            message: '恭喜你，添加成功',
+                            type: 'success'
+                        });
+                        //_this.$message.success("恭喜你，添加成功");
+                        //关闭弹出框
+                        _this.addFormVisible = false;
+                        //重新加载数据
+                        _this.loadData();
+                        //清空form
+                        _this.form = {};
+                    }
+                }).catch(function (error) {
+                    console.log(error);
+                    _this.$message.error("你错了。。。");
+                });
+            },
+            //更新
+            update: function () {
+                _this = this;
+                //JSON.stringify JSON 转 String
+                // alert(JSON.stringify(this.form));
+                axios.post('/role/update', this.form).then(function (response) {
+                    console.log(response);
+                    if (response.status == 200) {
+                        //提示成功
+                        _this.$message({
+                            message: '恭喜你，操作成功',
+                            type: 'success'
+                        });
+                        //_this.$message.success("恭喜你，添加成功");
+                        //关闭弹出框
+                        _this.updateFormVisible = false;
+                        //重新加载数据
+                        _this.loadData();
+                    }
+                }).catch(function (error) {
+                    console.log(error);
+                    _this.$message.error("你错了。。。");
+                });
+            },
+            getStatusName(row, column, cellValue) {
+                console.log("...22..." + row.status + "," + JSON.stringify(column) + "," + cellValue);
+                return cellValue == 0 ? '启动' : '禁用';
+                /* if(row.status==0){
+                     return "状态1";
+                 }else if(row.status==1){
+                     return "";
+                 }...*/
+            },
+            flush() {
+                //刷新当前页
+                location.reload();
+            }
+
+        }
+    });
+</script>
+</body>
+
+</html>

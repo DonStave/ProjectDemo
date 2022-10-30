@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>通知公告列表</title>
+    <link href="/static/css/index.css" rel="stylesheet">
+    <script src="/static/js/vue.js"></script>
+    <script src="/static/js/index.js"></script>
+    <script src="/static/js/axios.min.js"></script>
+    <script src="/static/js/moment.js"></script>
+</head>
+<body>
+<div id="app">
+    <!--通知公告列表-->
+    <template>
+        <el-row>
+            <el-col :span="3">
+                <el-button type="danger" size="mini" @click="delBtn()">多选删除</el-button>
+            </el-col>
+            <el-col :span="3">
+                <el-input v-model="search1" size="mini" placeholder="请输入标题"></el-input>
+            </el-col>&nbsp;&nbsp;
+            <el-col :span="1">&nbsp;</el-col>
+            <el-col :span="3">
+                <el-input v-model="search2" size="mini" placeholder="请输入内容"></el-input>
+            </el-col>
+            <el-col :span="3">
+                <el-button type="primary" size="mini" @click="onSearch" icon="el-icon-search">搜索</el-button>
+            </el-col>
+
+            <el-col :span="3">
+                <el-button type="primary" size="mini" @click="flush()" icon="el-icon-search">刷新</el-button>
+            </el-col>
+        </el-row>
+    </template>
+
+
+    <template>
+        <el-table
+                :data="tableData"
+                style="width: 100%"
+                @selection-change="handleSelectionChange">
+            <el-table-column
+                    type="selection"
+                    width="55">
+            </el-table-column>
+            <el-table-column
+                    prop="id"
+                    label="序号">
+            </el-table-column>
+            <el-table-column
+                    prop="title"
+                    label="标题"
+                    width="300">
+            </el-table-column>
+            <el-table-column
+                    prop="content"
+                    label="内容"
+                    width="300">
+            </el-table-column>
+            <el-table-column
+                    prop="createdTime"
+                    :formatter="dateFormat"
+                    label="开始时间">
+            </el-table-column>
+            <el-table-column
+                    prop="endTime"
+                    :formatter="dateFormat"
+                    label="结束时间">
+            </el-table-column>
+            <el-table-column
+                    prop="status"
+                    label="公告状态">
+                <template slot-scope="scope">
+                    <el-tag
+                            :type="scope.row.status == '0' ? '' : scope.row.status == '1'?'danger':'success'"
+                            disable-transitions>{{scope.row.status == '1' ? "过期" :scope.row.status =='维护'?"过期":"正常"}}
+                    </el-tag>
+                </template>
+            </el-table-column>
+            <el-table-column
+                    prop="user_name"
+                    label="操作人员">
+            </el-table-column>
+
+
+        </el-table>
+    </template>
+    <!--相关配置-->
+    <el-pagination
+            @size-change="handleSizeChange"
+            @current-change="handleCurrentChange"
+            :current-page="pageInfo.currentPage"
+            :page-sizes="pageInfo.pageSizes"
+            :page-size="pageInfo.pageSize"
+            layout="total, sizes, prev, pager, next, jumper"
+            :total="pageInfo.total">
+    </el-pagination>
+
+</div>
+</body>
+<script>
+
+
+    new Vue({
+        el: app,
+        data: {
+            //表格中要显示的数据集合，需要先声明
+            tableData: [],
+            userList: [],
+            //存放选中的数据集合
+            multipleSelection: [],
+            //要查找的关键字
+            search1: '',
+            search2: '',
+            pageInfo: {
+                //分页相关数据
+                currentPage: 1,
+                //一组页码的条数
+                pageSizes: [5, 10, 15],
+                //每页显示的条数
+                pageSize: 5,
+                //总条数
+                total: 0
+            },
+            //控制对话框隐藏显示
+            dialogVisible: false,
+            //表单中绑定的通知公告数据
+            noticeForm: {},
+
+            //状态
+            statusList: [{
+                value: '0',
+                label: '正常'
+            }, {
+                value: '1',
+                label: '过期'
+            }, {
+                value: '2',
+                label: '维护'
+            }]
+
+        },
+        mounted: function () {
+            //调用函数加载数据
+            this.initData(1, this.pageInfo.pageSize);
+            this.initUserList();
+        },
+        methods: {
+            //初始化数据（加载数据）
+            initData: function (currentPage, pageSize) {
+
+                axios.get("/notice/query", {
+                    params: {
+                        currentPage: currentPage,
+                        pageSize: pageSize,
+                        search1: this.search1,
+                        search2: this.search2
+                    }
+                }).then((response) => {
+                    //后台响应的数据对应的属性是：data属性
+                    this.tableData = response.data.list;
+                    //总条数赋值
+                    this.pageInfo.total = response.data.total;
+                    //当前页码赋值
+                    this.pageInfo.currentPage = response.data.pageNum;
+                }).catch((error) => {
+                    console.log(error);
+                });
+            },
+
+            initUserList: function () {
+                axios.get("/user/getAll").then((response) => {
+                    this.userList = response.data;
+                }).catch((error) => {
+                    console.log(error);
+                });
+            },
+            //按名字搜索初始化加载数据
+            onSearch: function () {
+                this.initData(1, this.pageInfo.pageSize);
+            },
+            //选中项改变时触发函数
+            handleSelectionChange: function (val) {
+                this.multipleSelection = val;
+                // console.log(this.multipleSelection);
+            },
+
+            //批量删除
+            delBtn: function () {
+                var Ids = this.multipleSelection;
+                for (let i = 0; i < Ids.length; i++) {
+                    this.deleteInfo(Ids[i].id);
+                }
+            },
+            //显示条数发生改变时出发的函数
+            handleSizeChange: function (val) {
+                //每页条数发生改变时默认加载第一页的数据
+                this.initData(1, val);
+                //重新制定每页条数
+                this.pageInfo.pageSize = val;
+            },
+            //当前页码改变时触发的函数
+            handleCurrentChange: function (val) {
+                //重新加载数据
+                this.initData(val, this.pageInfo.pageSize);
+                //修改当前页码的值
+                this.pageInfo.currentPage = val;
+            },
+
+            //删除信息
+            deleteInfo: function (id) {
+                axios.delete('/notice/delete', {
+                    params: {
+                        id: id
+                    }
+                }).then((result) => {
+                    let count = result.data;
+                    if (count > 0) {
+                        this.$message({
+                            message: '恭喜您，删除成功！！',
+                            type: 'success'
+                        });
+                        this.dialogVisible = false;
+                        this.initData(1, this.pageInfo.pageSize);
+                    } else {
+                        this.$message.error('抱歉，删除失败');
+                    }
+                }).catch((error) => {
+                    console.log("错误：" + error);
+                });
+            },
+
+
+            //日期转换
+            dateFormat: function (row, column) {
+                var date = row[column.property];
+                if (date == undefined) {
+                    return ''
+                }
+                return moment(date).format("YYYY-MM-DD HH:mm:ss")
+            },
+
+            //刷新
+            flush() {
+                location.reload();
+            },
+        }
+    })
+</script>
+</html>

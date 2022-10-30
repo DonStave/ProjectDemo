@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>后台首页</title>
+    <!--vue-->
+    <script src="../static/js/vue.js"></script>
+    <!-- 引入样式 -->
+    <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+    <!-- 引入组件库 -->
+    <script src="https://unpkg.com/element-ui/lib/index.js"></script>
+    <!--axios-->
+   <script src="../static/js/axios.min.js"></script>
+    <style>
+        .el-header, .el-footer {
+            background-color: #182D32;
+            color: #fff;
+            text-align: center;
+            line-height: 60px;
+        }
+
+        .el-aside {
+            background-color: #182D32;
+            color: #333;
+            text-align: center;
+            line-height: 38px;
+        }
+        .el-tree{
+            background-color: #182D32;
+            color: #F5F5F5;
+        }
+
+    </style>
+</head>
+<body>
+    <div id="app">
+        <el-container >
+            <el-header>
+                <el-row style="background-color: #182D32">
+                    <el-col :span="6"><div class="grid-content bg-purple">城市公交管理调度系统</div></el-col>
+                    <el-col :span="6"><div class="grid-content bg-purple-light">&nbsp;</div></el-col>
+                    <el-col :span="6"><div class="grid-content bg-purple" style="color: #2fb9d4">{{gettime}}&nbsp;{{week}}</div></el-col>
+                    <el-col :span="6"><div class="grid-content bg-purple-light">
+                        <el-menu
+                                :default-active="activeIndex2"
+                                class="el-menu-demo"
+                                mode="horizontal"
+                                @select="handleSelect"
+                                background-color="#182D32"
+                                text-color="#fff"
+                                active-text-color="#ffd04b">
+
+                            <el-submenu index="2">
+                                <template slot="title">{{userInfo.user_name}}-{{userInfo.login_name}}</template>
+                                <el-menu-item index="2-1" @click="Registration">签到</el-menu-item>
+                                <el-menu-item index="2-3" @click="logout">退出</el-menu-item>
+                            </el-submenu>
+                        </el-menu>
+                    </div></el-col>
+                </el-row>
+            </el-header>
+            <el-container style="height: 850px">
+                <el-aside width="200px">
+                    <img src="../static/imgs/2.gif" class="userAvatar"
+                         style="display: block;width: 80px;height: 80px;
+                         border-radius: 50%;-webkit-border-radius: 50%;
+                         -moz-border-radius: 50%;
+                         border: 4px solid #44576b;box-sizing: border-box;margin: 10px auto 10px;">
+                    <p style=" display: block;width: 100%;height: 25px;color: #ffffff;text-align: center;font-size: 12px;white-space: nowrap;line-height: 25px;overflow: hidden;">
+                        你好！<span class="userName">{{userInfo.user_name}}</span>, 欢迎回来
+                    </p>
+
+                    <!--左侧树-->
+                    <el-tree :data="data" :props="defaultProps"
+
+                             @node-click="handleNodeClick"></el-tree>
+                </el-aside>
+                <el-main>
+                    <el-tabs  v-model="editableTabsValue" type="card" closable @tab-remove="removeTab">
+                        <el-tab-pane
+                                v-for="(item, index) in editableTabs"
+                                :key="item.name"
+                                :label="item.title"
+                                :name="item.name"
+                        >
+                            <iframe style="height:750px;width: 100%" :src="item.url" scrolling="auto" frameborder="yes"></iframe>
+                        </el-tab-pane>
+                    </el-tabs>
+
+                </el-main>
+            </el-container>
+        </el-container>
+    </div>
+    <script>
+        var vue =new Vue({
+            el:"#app",
+            data:{
+                data:[],//树数据
+                defaultProps: {
+                    children: 'children',
+                    label: 'label'
+                },
+                //tabs 标签页
+                editableTabsValue: '1',
+                editableTabs: [{
+                    title: '首页',
+                    name: '1',
+                    url: '/html/index/index.html'
+                }],
+                tabIndex: 1,
+                activeIndex2:'1',
+                gettime:'',//获取当前时间
+                week:'',//星期几
+                userInfo:{}
+            },
+            //初始化
+            created:function(){
+                _this =this;
+                //初始化数据,左侧树数据
+                axios.get('/menu/listMenuByUserId')
+                    .then(function (response) {
+                        _this.data=response.data;
+                    });
+                axios.get('/user/getLoginSession')
+                    .then(function (response) {
+                        _this.userInfo=response.data;
+                    });
+                this.currentTime();
+                this.getWeek();
+            },
+            methods: {
+                //节点点击事件
+                handleNodeClick(data) {
+                    // console.log(data);
+                    if(data.url!=null&&data.url!=''){
+                        //alert(JSON.stringify(data));
+                        this.addTab(data.label,data.url);
+                    }
+                },
+                //标签页方法
+                addTab(targetName,url) {
+                    let newTabName = ++this.tabIndex + '';
+                    if(JSON.stringify(this.editableTabs).indexOf(targetName)==-1) {
+                        this.editableTabs.push({
+                            title: targetName,
+                            name: newTabName,
+                            url: url
+                        });
+                        this.editableTabsValue = newTabName;
+                    }
+                },
+                removeTab(targetName) {
+                    let tabs = this.editableTabs;
+                    let activeName = this.editableTabsValue;
+                    if (activeName === targetName) {
+                        tabs.forEach((tab, index) => {
+                            if (tab.name === targetName) {
+                                let nextTab = tabs[index + 1] || tabs[index - 1];
+                                if (nextTab) {
+                                    activeName = nextTab.name;
+                                }
+                            }
+                        });
+                    }
+                    this.editableTabsValue = activeName;
+                    this.editableTabs = tabs.filter(tab => tab.name !== targetName);
+                },
+                //导航栏处理方法
+                handleSelect(key, keyPath) {
+                    // console.log(key, keyPath);
+                },
+                //头部导航获取当前时间
+                getTime:function(){
+                    let currentDate  =new Date();
+                    let yy = currentDate.getFullYear();
+                    let mm = currentDate.getMonth()+1;
+                    let dd = currentDate.getDate();
+                    let hh = currentDate.getHours();
+                    let mf = currentDate.getMinutes()<10 ? '0'+currentDate.getMinutes() : currentDate.getMinutes();
+                    let ss = currentDate.getSeconds()<10 ? '0'+currentDate.getSeconds() : currentDate.getSeconds();
+                    this.gettime = yy+'-'+mm+'-'+dd+' '+hh+':'+mf+':'+ss;
+                },
+                //每隔0.5秒调用getTime属性
+                currentTime(){
+                    setInterval(this.getTime,500)
+                },
+                //获取星期几
+                getWeek(){
+                    //java String   "abc".charAt(1)  返回某一个字符串"abc"1位置上的字符
+                   //.getDay() 获取星期几的数字 0-6
+                    //.getDate() 获取档期日期的每月第几天   2020-03-12  12
+                    // console.log("星期"+new Date().getDay());
+                    this.week='星期'+"日一二三四五六".charAt(new Date().getDay());
+                },
+                //签到
+                Registration: function () {
+                            axios.post('/attendance/add').then((result) => {
+                                let count = result.data;
+                                if (count > 0) {
+                                    this.$message({
+                                        message: '恭喜您，签到成功！！',
+                                        type: 'success'
+                                    });
+                                } else {
+                                    this.$message.error('抱歉，签到失败');
+                                }
+                            }).catch((error) => {
+                                console.log("错误：" + error);
+                            });
+                },
+                //退出
+                logout(){
+                    _this=this;
+                    //初始化数据
+                    axios.get('/logout')
+                        .then(function (response) {
+                            location.href="/html/login.html";
+                        });
+                }
+            }
+        });
+
+    </script>
+</body>
+</html>

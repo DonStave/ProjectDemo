@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.my.mapper.ArrangeMapper">
+    <select id="query" resultType="map">
+        select a.*,s.user_name,d.driverName,sr.role_name from arrange a
+        left join sys_user s on a.staffId = s.user_id
+        left join driver d on a.userId = d.driverId
+        left join sys_role sr on a.roleId = sr.role_id
+        <where>
+            <if test="#{userId}!=null">
+                and a.userId like concat('%',#{userId},'%')
+            </if>
+            and a.roleId = 4 order by id desc
+        </where>
+    </select>
+
+    <select id="queryU" resultType="map">
+        select a.*,s.user_name,su.user_name operation,sr.role_name from arrange a
+        left join sys_user s on a.userId = s.user_id
+        left join sys_user su on a.userId = s.user_id
+        left join sys_role sr on a.roleId = sr.role_id
+        <where>
+            <if test="#{userId}!=null">
+                and a.userId like concat('%',#{userId},'%')
+            </if>
+            and a.roleId = 3 group by a.startTime order by id desc
+        </where>
+    </select>
+</mapper>

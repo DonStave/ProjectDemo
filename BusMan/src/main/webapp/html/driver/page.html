@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>司机列表</title>
+    <link href="/static/css/index.css" rel="stylesheet">
+    <script src="/static/js/vue.js"></script>
+    <script src="/static/js/index.js"></script>
+    <script src="/static/js/axios.min.js"></script>
+    <script src="/static/js/moment.js"></script>
+</head>
+<body>
+<div id="app">
+    <!--司机信息列表-->
+    <template>
+        <el-row>
+            <el-col :span="3">
+                <el-button type="danger" size="mini" @click="delBtn()">多选删除</el-button>
+            </el-col>
+            <el-col :span="3">
+                <el-input v-model="search" size="mini" placeholder="请输入司机名称"></el-input>
+            </el-col>
+
+            <el-col :span="3">
+                <el-button type="primary" size="mini" @click="onSearch" icon="el-icon-search">搜索</el-button>
+            </el-col>
+            <el-col :span="3">
+                <el-button type="primary" size="mini" @click="showDialog(driverForm)" icon="el-icon-circle-plus">添加
+                </el-button>
+            </el-col>
+            <el-col :span="3">
+                <el-button type="primary" size="mini" @click="flush()" icon="el-icon-search">刷新</el-button>
+            </el-col>
+        </el-row>
+    </template>
+
+
+    <template>
+        <el-table
+                :data="tableData.filter(data => !search || data.driverName.toLowerCase().includes(search.toLowerCase()))"
+                style="width: 100%"
+                @selection-change="handleSelectionChange">
+            <el-table-column
+                    type="selection"
+                    width="55">
+            </el-table-column>
+            <el-table-column
+                    prop="driverId"
+                    label="司机编号">
+            </el-table-column>
+            <el-table-column
+                    prop="driverName"
+                    label="司机姓名">
+            </el-table-column>
+            <el-table-column
+                    prop="phone"
+                    label="司机联系方式"
+                    width="120">
+            </el-table-column>
+            <el-table-column
+                    prop="idCard"
+                    label="身份证号"
+                    width="200">
+            </el-table-column>
+            <el-table-column
+                    prop="birthday"
+                    :formatter="dateFormat"
+                    label="出生日期">
+            </el-table-column>
+            <el-table-column
+                    prop="sex"
+                    :formatter="getSexName"
+                    label="性别">
+            </el-table-column>
+            <el-table-column
+                    prop="address"
+                    label="司机住址">
+            </el-table-column>
+            <el-table-column
+                    prop="area"
+                    label="地区">
+            </el-table-column>
+            <el-table-column
+                    prop="createdTime"
+                    :formatter="dateFormat"
+                    label="入职日期">
+            </el-table-column>
+            <el-table-column
+                    prop="workTime"
+                    label="工作时长">
+            </el-table-column>
+            <el-table-column
+                    prop="kilometers"
+                    label="公里数">
+            </el-table-column>
+            <el-table-column
+                    prop="plate"
+                    label="负责车辆"
+                    width="100">
+            </el-table-column>
+            <el-table-column
+                    prop="momo"
+                    label="备注">
+            </el-table-column>
+            <el-table-column
+                    prop="staffId"
+                    label="操作人员">
+            </el-table-column>
+
+            <el-table-column
+                    fixed="right"
+                    label="操作"
+                    width="200">
+                <template slot-scope="scope">
+                    <el-button type="text" @click="showEditDialog(scope.row)" size="small">编辑</el-button>
+                    <el-button type="text" @click="delete(scope.row.id)" size="small">删除</el-button>
+                </template>
+            </el-table-column>
+        </el-table>
+    </template>
+    <!--相关配置-->
+    <el-pagination
+            @size-change="handleSizeChange"
+            @current-change="handleCurrentChange"
+            :current-page="pageInfo.currentPage"
+            :page-sizes="pageInfo.pageSizes"
+            :page-size="pageInfo.pageSize"
+            layout="total, sizes, prev, pager, next, jumper"
+            :total="pageInfo.total">
+    </el-pagination>
+    <!--模态框-->
+    <el-dialog
+            title="操作司机信息"
+            :visible.sync="dialogVisible"
+            width="40%"
+            :before-close="handleClose">
+        <el-form :model="driverForm" :rules="rules" ref="ruleForm" label-width="100px" class="demo-rulesForm">
+            <el-form-item label="司机编号" prop="driverId">
+                <el-input v-model="driverForm.driverId"></el-input>
+            </el-form-item>
+            <el-form-item label="司机姓名" prop="driverName">
+                <el-input v-model="driverForm.driverName"></el-input>
+            </el-form-item>
+            <el-form-item label="电话" prop="phone">
+                <el-input v-model="driverForm.phone"></el-input>
+            </el-form-item>
+
+            <el-form-item label="身份证号" prop="idCard">
+                <el-input v-model="driverForm.idCard"></el-input>
+            </el-form-item>
+            <el-form-item label="出生日期" prop="birthday">
+                <el-col :span="11">
+                    <el-date-picker type="date" placeholder="选择日期" v-model="driverForm.birthday"
+                                    style="width: 100%;"></el-date-picker>
+                </el-col>
+            </el-form-item>
+            <el-form-item label="性别" prop="sex">
+                <el-radio-group v-model="driverForm.sex">
+                    <el-radio label="0">男</el-radio>
+                    <el-radio label="1">女</el-radio>
+                </el-radio-group>
+            </el-form-item>
+            <el-form-item label="司机地址" prop="address">
+                <el-input v-model="driverForm.address"></el-input>
+            </el-form-item>
+            <el-form-item label="司机地区" prop="area">
+                <el-input v-model="driverForm.area"></el-input>
+            </el-form-item>
+            <el-form-item label="工作时长" prop="workTime">
+                <el-input v-model="driverForm.workTime"></el-input>
+            </el-form-item>
+            <el-form-item label="公里数" prop="kilometers">
+                <el-input v-model="driverForm.kilometers"></el-input>
+            </el-form-item>
+            <el-form-item label="负责车辆" prop="plate">
+                <el-select v-model="driverForm.plate" filterable placeholder="请选择车辆">
+                    <el-option v-for="item in busList"
+                               :key="item.plate"
+                               :label="item.plate"
+                               :value="item.plate"></el-option>
+                </el-select>
+            </el-form-item>
+
+            <el-form-item label="备注" prop="momo">
+                <el-input v-model="driverForm.momo"></el-input>
+            </el-form-item>
+            <el-form-item label="操作人员" prop="staffId">
+                <el-input v-model="driverForm.staffId"></el-input>
+            </el-form-item>
+        </el-form>
+        <el-button type="primary" @click="submitForm('ruleForm')">提 交</el-button>
+        <el-button @click="resetForm('ruleForm')">重 置</el-button>
+        </span>
+    </el-dialog>
+</div>
+</body>
+<script>
+
+    //定义验证规则
+    const rules = {
+        driverName: [
+            {required: true, message: '请输入司机名称', trigger: 'blur'},
+            {min: 2, max: 6, message: '长度在 2 到 6 个字符', trigger: 'blur'}
+        ],
+        phone: [
+            {required: true, message: '请填写司机联系方式', trigger: 'blur'}
+        ],
+        idCard: [
+            {required: true, message: '请填写司机身份证号', trigger: 'blur'}
+        ],
+        address: [
+            {required: true, message: '请填写司机住址', trigger: 'blur'}
+        ],
+        area: [
+            {required: true, message: '请填写司机所处地区', trigger: 'blur'}
+        ],
+        plate: [
+            {required: true, message: '请选择司机负责车辆', trigger: 'change'}
+        ],
+        birthday: [
+            {required: true, message: '请选择会员生日', trigger: 'change'}
+        ]
+    };
+
+    new Vue({
+        el: app,
+        data: {
+            //表格中要显示的数据集合，需要先声明
+            tableData: [],
+            //车辆信息
+            busList: [],
+            //存放选中的数据集合
+            multipleSelection: [],
+            //要查找的关键字
+            search: '',
+            pageInfo: {
+                //分页相关数据
+                currentPage: 1,
+                //一组页码的条数
+                pageSizes: [5, 10, 15],
+                //每页显示的条数
+                pageSize: 5,
+                //总条数
+                total: 0
+            },
+            //控制对话框隐藏显示
+            dialogVisible: false,
+            //表单中绑定的司机信息数据
+            driverForm: {},
+            //指定验证规则
+            rules: rules
+
+        },
+        mounted: function () {
+            //调用函数加载数据
+            this.initData(1, this.pageInfo.pageSize);
+            this.initbusList();
+        },
+        methods: {
+            //初始化数据（加载数据）
+            initData: function (currentPage, pageSize) {
+                axios.get("/driver/query", {
+                    params: {
+                        currentPage: currentPage,
+                        pageSize: pageSize,
+                        search: this.search
+                    }
+                }).then((response) => {
+                    //后台响应的数据对应的属性是：data属性
+                    this.tableData = response.data.list;
+                    //总条数赋值
+                    this.pageInfo.total = response.data.total;
+                    //当前页码赋值
+                    this.pageInfo.currentPage = response.data.pageNum;
+                }).catch((error) => {
+                    console.log(error);
+                });
+            },
+            initbusList: function () {
+                axios.get("/bus/getAll").then((response) => {
+                    this.busList = response.data;
+                }).catch((error) => {
+                    console.log(error);
+                });
+            },
+            //按名字搜索初始化加载数据
+            onSearch: function () {
+                this.initData(1, this.pageInfo.pageSize);
+            },
+            //选中项改变时触发函数
+            handleSelectionChange: function (val) {
+                this.multipleSelection = val;
+                // console.log(this.multipleSelection);
+            },
+
+            //批量删除
+            delBtn: function () {
+                var Ids = this.multipleSelection;
+                for (let i = 0; i < Ids.length; i++) {
+                    this.delete(Ids[i].id);
+                }
+            },
+            //显示条数发生改变时出发的函数
+            handleSizeChange: function (val) {
+                //每页条数发生改变时默认加载第一页的数据
+                this.initData(1, val);
+                //重新制定每页条数
+                this.pageInfo.pageSize = val;
+            },
+            //当前页码改变时触发的函数
+            handleCurrentChange: function (val) {
+                //重新加载数据
+                this.initData(val, this.pageInfo.pageSize);
+                //修改当前页码的值
+                this.pageInfo.currentPage = val;
+            },
+            //新增显示模态框
+            showDialog: function () {
+                this.resetForm('ruleForm');
+                this.dialogVisible = true;
+            },
+
+            //删除信息
+            delete: function (id) {
+                axios.delete('/driver/delete', {
+                    params: {
+                        id: id
+                    }
+                }).then((result) => {
+                    let count = result.data;
+                    if (count > 0) {
+                        this.$message({
+                            message: '恭喜您，删除成功！！',
+                            type: 'success'
+                        });
+                        this.dialogVisible = false;
+                        this.initData(1, this.pageInfo.pageSize);
+                    } else {
+                        this.$message.error('抱歉，删除失败');
+                    }
+                }).catch((error) => {
+                    console.log("错误：" + error);
+                });
+            },
+            //提交表单
+            submitForm: function (formName) {
+                this.$refs[formName].validate((id) => {
+                    if (id) {
+                        console.log(JSON.stringify(this.driverForm));
+                        axios.post('/driver/addOrUpdate', this.driverForm).then((result) => {
+                            let count = result.data;
+                            if (count > 0) {
+                                this.$message({
+                                    message: '恭喜您，操作成功！！',
+                                    type: 'success'
+                                });
+                                this.dialogVisible = false;
+                                this.initData(1, this.pageInfo.pageSize);
+                            } else {
+                                this.$message.error('抱歉，操作失败');
+                            }
+                        }).catch((error) => {
+                            console.log("错误：" + error);
+                        });
+                    } else {
+                        console.log('错了鸭兄弟！');
+                        return false;
+                    }
+                });
+            },
+            //重置表单
+            resetForm(formName) {
+                if (this.$refs[formName] !== undefined) {
+                    this.$refs[formName].resetFields();
+                }
+            },
+            //编辑司机信息时
+            showEditDialog: function (rowData) {
+                this.driverForm = rowData;
+                this.dialogVisible = true;
+            },
+            //关闭模态框时
+            handleClose: function (done) {
+                this.$confirm('确认关闭？')
+                    .then(_ => {
+                        done();
+                    })
+                    .catch(_ => {
+                    });
+            },
+            //判断性别并展示
+            getSexName(row, column, cellValue) {
+                return cellValue == 0 ? '男' : cellValue == 1 ? "女" : "未知";
+            },
+            //日期转换
+            dateFormat: function (row, column) {
+                var date = row[column.property];
+                if (date == undefined) {
+                    return ''
+                }
+                return moment(date).format("YYYY-MM-DD")
+            },
+            flush() {
+                location.reload();
+            },
+        }
+    })
+</script>
+</html>

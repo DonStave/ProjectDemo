@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>后台首页</title>
+        <!--vue-->
+        <script src="/static/js/vue.js"></script>
+        <!-- 引入样式 -->
+        <link rel="stylesheet" href="/static/css/index.css">
+        <!-- 引入组件库 -->
+        <script src="/static/js/index.js"></script>
+        <!--axios-->
+        <script src="/static/js/axios.min.js"></script>
+        <style>
+            .el-aside {
+                color: #333;
+                text-align: center;
+                line-height: 38px;
+            }
+
+        </style>
+
+    </head>
+    <body>
+        <div id="app">
+            <el-container>
+                <el-aside width="200px">
+                    <!--左侧树-->
+                    <el-tree :data="data" :props="defaultProps"
+                             default-expand-all
+                             @node-click="handleNodeClick"></el-tree>
+                </el-aside>
+                <el-main style="height: 480px;">
+                    <el-button type="primary" size="mini" @click="flush()" icon="el-icon-search">刷新</el-button>
+                    <el-form ref="form" :model="form" label-width="80px">
+                        <el-input v-model="form.parentId" type="hidden"></el-input>
+                        <el-form-item label="菜单名称">
+                            <el-input v-model="form.label"></el-input>
+                        </el-form-item>
+                        <el-form-item label="父节点">
+
+                            <el-input v-model="form.parentName" @focus="dialogMenuTreeVisible=true"></el-input>
+                        </el-form-item>
+                        <el-form-item label="链接地址">
+                            <el-input v-model="form.url"></el-input>
+                        </el-form-item>
+                        <el-form-item label="图标">
+                            <el-input v-model="form.icon"></el-input>
+                        </el-form-item>
+                        <el-form-item label="是否有效">
+                            <el-switch v-model="form.visible"></el-switch>
+                        </el-form-item>
+
+                        <el-form-item>
+                            <el-button type="primary" @click="onSubmit">{{addOrUpdate}}</el-button>
+                            <el-button v-if="seen" type="danger" @click="onDelete">删除</el-button>
+                        </el-form-item>
+                    </el-form>
+                </el-main>
+            </el-container>
+            <el-dialog title="收货地址" :visible.sync="dialogMenuTreeVisible">
+                <el-tree :data="data" :props="defaultProps"
+                         show-checkbox
+                         check-strictly="true"
+                         ref="parentMenuTree"
+                         default-expand-all
+                ></el-tree>
+
+                <div slot="footer" class="dialog-footer">
+                    <el-button type="primary" @click="checkSelectNode">确 定</el-button>
+                </div>
+            </el-dialog>
+
+        </div>
+        <script>
+            var vue = new Vue({
+                el: "#app",
+                data: {
+                    data: [],//树数据
+                    defaultProps: {
+                        children: 'children',
+                        label: 'label'
+                    },
+                    form: {visible: true, parentName: '根节点', parentId: 0},
+                    dialogMenuTreeVisible: false,
+                    addOrUpdate: "添加",
+                    seen: false
+                },
+                //初始化
+                created: function () {
+                    this.loadTreeData();
+                },
+                methods: {
+                    loadTreeData() {
+                        _this = this;
+                        //初始化数据
+                        axios.get('/menu/tree')
+                            .then(function (response) {
+                                _this.data = response.data;
+                            });
+                    },
+                    //节点点击事件
+                    handleNodeClick(data) {
+                        console.log(JSON.stringify(data));
+                        if (data.visible == 0) {
+                            data.visible = true;
+                        } else {
+                            data.visible = false;
+                        }
+                        this.form = data;
+                        this.addOrUpdate = "更新";
+                        this.seen = true;
+                        //this.form.parentName=data.
+                    },
+                    //提交
+                    onSubmit() {
+                        console.log('submit!');
+                        var url = "";
+                        if (this.seen) {//更新
+                            url = "/menu/update";
+                        } else {//添加
+                            url = "/menu/add";
+                        }
+                        //添加或者更新获取
+                        _this = this;
+                        //判断visible是否为true
+                        if (this.form.visible) {
+                            this.form.visible = 0;
+                        } else {
+                            this.form.visible = 1;
+                        }
+                        axios.post(url, this.form).then(function (response) {
+                            console.log(response);
+                            if (response.status == 200) {
+                                //提示成功
+                                _this.$message({
+                                    message: '恭喜你，操作成功',
+                                    type: 'success'
+                                });
+                                //_this.$message.success("恭喜你，添加成功");
+                                //重新加载数据
+                                _this.loadTreeData();
+                            }
+                        }).catch(function (error) {
+                            console.log(error);
+                            _this.$message.error("你错了。。。");
+                        });
+                    },
+                    //校验选中节点数量
+                    checkSelectNode() {
+                        let nodes = this.$refs.parentMenuTree.getCheckedNodes();
+                        if (nodes.length > 1) {
+                            _this.$message.error("只能选择一个节点。。。");
+                            return;
+                        }
+                        console.log("一个节点：" + JSON.stringify(nodes) + "名称为：" + nodes[0].label);
+                        this.form.parentName = nodes[0].label;
+                        this.form.parentId = nodes[0].id;
+                        //关闭弹框
+                        this.dialogMenuTreeVisible = false;
+                        console.log("选中节点：" + JSON.stringify(this.form));
+                    },
+                    //删除  不能直接写delete
+                    onDelete() {
+                        _this = this;
+                        //console.log("要删除的菜单ID"+this.form.id);
+                        if (this.form.url == null || this.form.url == '') {
+                            _this.$message.error("该节点下有子节点，不能删除。。。");
+                            return; //让程序不继续
+                        }
+                        this.$confirm('此操作将永久删除该数据, 是否继续?', '提示', {
+                            confirmButtonText: '确定',
+                            cancelButtonText: '取消',
+                            type: 'warning'
+                        }).then(() => {
+                            axios.post('/menu/delete?menuId=' + this.form.id).then(function (response) {
+                                console.log(response);
+                                if (response.status == 200) {
+                                    //提示成功
+                                    _this.$message({
+                                        type: 'success',
+                                        message: '删除成功!'
+                                    });
+                                    //重新加载数据
+                                    _this.loadTreeData();
+                                }
+                            }).catch(function (error) {
+                                console.log(error);
+                                _this.$message.error("你错了。。。");
+                            });
+
+                        }).catch(() => {
+                            this.$message({
+                                type: 'info',
+                                message: '已取消删除'
+                            });
+                        });
+                    },
+                    flush() {
+                        //刷新当前页
+                        location.reload();
+                    }
+                }
+            });
+
+        </script>
+    </body>
+</html>
