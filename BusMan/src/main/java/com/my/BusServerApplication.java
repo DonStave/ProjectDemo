@@ -14,5 +14,6 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 public class BusServerApplication {
     public static void main(String[] args) {
         SpringApplication.run(BusServerApplication.class, args);
+        System.out.println("Bus管理系统启动！");
     }
 }
